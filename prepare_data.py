@@ -46,7 +46,6 @@ def economy_actvity_data(choosen_activity):
                      on='Вид деятельности')
             .melt(id_vars='Вид деятельности', var_name='year', value_name='Средняя заработная плата')
             )
-    merged['% Изменения зарплаты'] = merged.groupby('Вид деятельности')['Средняя заработная плата'].pct_change()*100
     return merged
 
 @st.cache_data
@@ -79,5 +78,11 @@ def main(choosen_activity):
     economy_df = economy_actvity_data(choosen_activity)
     inflation_df = infliation_data()
     result = economy_df.merge(inflation_df, on='year')
+    result['Реальный размер заработной платы'] = result['Средняя заработная плата'] * (
+                (100 - result['Инфляция в прошлом году']) / 100)
+    result['Изменения реальной заработной платы'] = result.groupby('Вид деятельности')[
+                                                       'Реальный размер заработной платы'].pct_change() * 100
     return result[['year', 'Вид деятельности', 'Средняя заработная плата',
-                   'Инфляция в прошлом году', '% Изменения зарплаты', 'inflation_rate']]
+                   'Инфляция в прошлом году', 'Изменения реальной заработной платы', 'inflation_rate']]
+
+

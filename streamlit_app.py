@@ -31,9 +31,9 @@ def create_schedule(dataframe):
         height=400,
     )
 
-    # Создание линии % изменения номинальной заработной платы в сравнении с предыдущим периодом
+    # Создание линии % изменения реальной заработной платы в сравнении с предыдущим периодом
     line_delta_salary = alt.Chart(dataframe).mark_line(color='green').encode(
-        y=alt.Y('% Изменения зарплаты', axis=alt.Axis(titleColor='white', labelColor='green')),
+        y=alt.Y('Изменения реальной заработной платы', axis=alt.Axis(titleColor='white', labelColor='green')),
         x=alt.Y('year:O', axis=alt.Axis(titleColor='white')),
         size=alt.value(5)
     ).properties(
@@ -50,7 +50,7 @@ def create_schedule(dataframe):
 
 
 def corr_coefficient(dataframe):
-    delta_salary_list = dataframe['% Изменения зарплаты'].tolist()[1:]  # Первое число всегда nan - его мы удаляем
+    delta_salary_list = dataframe['Изменения реальной заработной платы'].tolist()[1:]  # Первое число всегда nan - его мы удаляем
     inflation_last_year_list = dataframe['Инфляция в прошлом году'].tolist()[
                                :len(delta_salary_list)]  # не длиннее delta зп
     st.write("")
