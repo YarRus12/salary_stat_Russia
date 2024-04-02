@@ -19,6 +19,17 @@ def economy_actvity_data(choosen_activity):
     rename_dict = {df_2016.columns[column_index]: column_list[column_index] for column_index in
                    range(len(df_2016.columns))}
     df_2016.rename(columns=rename_dict, inplace=True)
+
+    # Переименование старых колонок с похожими сферами деятельности
+    if 'деятельность гостиниц и предприятий общественного питания' in choosen_activity:
+        df_2016['Вид деятельности'] = df_2016['Вид деятельности']\
+            .replace('Операции с недвижимым имуществом, аренда и предоставление услуг',
+                     'деятельность гостиниц и предприятий общественного питания')
+    if 'деятельность в области здравоохранения и социальных услуг' in choosen_activity:
+        df_2016['Вид деятельности'] = df_2016['Вид деятельности'] \
+            .replace('Здравоохранение и предоставление социальных услуг',
+                     'деятельность в области здравоохранения и социальных услуг')
+
     # Колонка вид деятельности очищается от регистрозависимости и пробелов
     df_2016['Вид деятельности'] = df_2016['Вид деятельности'].str.lower().str.strip()
     # Подготовка датафрейма с новым данными
@@ -68,4 +79,5 @@ def main(choosen_activity):
     economy_df = economy_actvity_data(choosen_activity)
     inflation_df = infliation_data()
     result = economy_df.merge(inflation_df, on='year')
-    return result[['year', 'Вид деятельности', 'Средняя заработная плата', 'Инфляция в прошлом году', '% Изменения зарплаты']]
+    return result[['year', 'Вид деятельности', 'Средняя заработная плата',
+                   'Инфляция в прошлом году', '% Изменения зарплаты', 'inflation_rate']]
