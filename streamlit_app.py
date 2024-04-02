@@ -5,7 +5,6 @@ from prepare_data import main
 CHOSEN_ACTIVITY = ['добыча полезных ископаемых', 'обрабатывающие производства', 'строительство']
 
 
-
 @st.cache_data(ttl=60 * 60 * 24)
 def create_schedule(df, action):
     df = df[filtered_df['Вид деятельности'] == action]
@@ -15,20 +14,36 @@ def create_schedule(df, action):
         y='Средняя заработная плата',
         color='Вид деятельности'
     ).properties(
-        width=600,
+        width=1000,
         height=400
     )
+
     # Создание линии инфляции на уровне инфляции в прошлом году
-    line_chart = alt.Chart(df).mark_line(color='red').encode(
+    inflation_chart = alt.Chart(df).mark_line(color='red').encode(
         y=alt.Y('Инфляция в прошлом году', axis=alt.Axis(titleColor='white', labelColor='red')),
         # Настройка цвета текста по оси Y
-        x=alt.X('year:O', axis=alt.Axis(format=''))  # Настройка цвета текста по оси X
+        x=alt.X('year:O', axis=alt.Axis(format='')),
+        size=alt.value(5) # Настройка цвета текста по оси X
+    ).properties(
+        width=1000,
+        height=400,
     )
 
-    # Наложение линии на столбчатую диаграмму
-    combined_chart = alt.layer(bar_chart, line_chart).resolve_scale(y='independent')
+    # Создание линии % изменения номинальной заработной платы в сравнении с предыдущим периодом
+    line_delta_salary = alt.Chart(df).mark_line(color='green').encode(
+        y=alt.Y('% Изменения зарплаты', axis=alt.Axis(titleColor='green', labelColor='green')),
+        x=alt.Y('year:O', axis=alt.Axis(titleColor='white')),
+        size=alt.value(5)
+                ).properties(
+        width=1000,
+        height=400
+    )
 
-    # Отображение комбинированного графика в Streamlit
+    # Объединяем линию инфляции и линию % изменний заработной платы
+    inflation_delta_salary_line = alt.layer(inflation_chart, line_delta_salary)
+
+    # Соединяем линии с барелями заработной платы
+    combined_chart = alt.layer(bar_chart, inflation_delta_salary_line).resolve_scale(y='independent')
     st.altair_chart(combined_chart, use_container_width=True)
 
 
@@ -65,4 +80,3 @@ if __name__ == '__main__':
 
     for activity in selected_activity:
         create_schedule(df=filtered_df, action=activity)
-
