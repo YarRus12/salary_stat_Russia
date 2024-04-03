@@ -3,8 +3,6 @@ import altair as alt
 from prepare_data import main, extra_metrics, previous_year_inflation, real_salary, real_salary_delta
 import numpy as np
 
-
-
 CHOSEN_ACTIVITY = ['добыча полезных ископаемых', 'обрабатывающие производства', 'строительство',
                    'деятельность гостиниц и предприятий общественного питания', 'образование',
                    'деятельность в области здравоохранения и социальных услуг']
@@ -58,7 +56,6 @@ def create_schedule_main(dataframe) -> None:
 
 
 def create_schedule_vvp(df_general, df_vvp, extra_column):
-
     merged = df_general.merge(df_vvp, on='year')
 
     bar_chart = alt.Chart(merged).mark_bar().encode(
@@ -83,11 +80,11 @@ def create_schedule_vvp(df_general, df_vvp, extra_column):
 
 
 def corr_coefficient_extra(df_general, df_vvp, extra_column, general_column='изменением реальной заработной платы'):
-
-    filled_length = len(df_general.merge(df_vvp, on='year'))-2
-    delta_salary_list = df_general[real_salary_delta].tolist()[-filled_length:] # Первое число всегда nan - его мы удаляем
+    filled_length = len(df_general.merge(df_vvp, on='year')) - 2
+    delta_salary_list = df_general[real_salary_delta].tolist()[
+                        -filled_length:]  # Первое число всегда nan - его мы удаляем
     extra_column_list = df_vvp[extra_column].tolist()[
-                                  -filled_length:]  # не длиннее delta зп
+                        -filled_length:]  # не длиннее delta зп
 
     st.info(f"Коэффициент корреляции Пирсона между {extra_column} и {general_column} "
             f"в сфере - {activity.capitalize()}: "
@@ -175,9 +172,16 @@ if __name__ == '__main__':
     st.write("")
     st.write("")
 
-    st.sidebar.title("Этот sidebar немного расскажет о результатах реализации проекта")
-    st.sidebar.info(
+    st.sidebar.title("Этот sidebar немного расскажет о результатах реализации проекта :thought_balloon:")
+
+    st.sidebar.markdown(
         """
-        This app is Open Source dashboard.
+        ![Altair Logo](https://i.pinimg.com/originals/3e/69/33/3e6933f1430c178465f64df11671c0e9.jpg)
+        """
+    )
+    st.sidebar.info(
+
+        """
+         Проект не лишен стоих ::crutch::, но когда работаешь со слабо структурированными данными как иначе
         """
     )

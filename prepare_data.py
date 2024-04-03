@@ -14,13 +14,25 @@ previous_year_inflation, real_salary = attributes['previous_year_inflation'], at
 real_salary_delta = attributes['real_salary_delta']
 
 
-def clean_inflation(value):
+def clean_numeric_column(value: str):
+    """
+    Небольшая функция для преобразования числовых значений с запятой в качестве разделителя в стандартный формат
+    и для очистки числовых колонок датафреймов от лишних символов
+    :param value:
+    :return:
+    """
     if ',' in value:
         value = value.replace(',', '.')
     value = ''.join(filter(lambda x: x in '1234567890.', value))
     return value
 
-def main_inflation_data():
+
+def main_inflation_data() -> pd.DataFrame:
+    """
+    функция получает данные из основного источника, и распарсевает их как текст
+    и возвращает обработанный датафрейм
+    :return: датафрейм с данным по инфляции
+    """
     url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8"""
     r = requests.get(url)
     if r.status_code == 200:
@@ -38,7 +50,13 @@ def main_inflation_data():
     return pd.DataFrame(year_inf, columns=['year', current_inflation])
 
 
-def alternative_inflation_data():
+def alternative_inflation_data() -> pd.DataFrame:
+    """
+    Альтернативная функция получения данных об инфляции,
+    вычитываются сведения об изменении индекса потребительских цен, как самого крупного компонента инфляции
+    работает в случае недоступности первого источника
+    :return: датафрейм с данным по инфляции
+    """
     df = pd.read_excel("https://rosstat.gov.ru/storage/mediabank/ipc_mes_02-2024.xlsx",
                        sheet_name='01', index_col=None)[
          2:18]
@@ -51,14 +69,14 @@ def alternative_inflation_data():
     new_df = new_df.dropna(subset=['year'])
     new_df = new_df[['year', current_inflation]].astype(str)
     new_df['year'] = new_df['year'].str.slice(0, 4)
-    new_df[current_inflation] = new_df[current_inflation].apply(clean_inflation).astype(float) - 100
+    new_df[current_inflation] = new_df[current_inflation].apply(clean_numeric_column).astype(float) - 100
     return new_df
 
 
 @st.cache_data
 def economy_activity_data(chosen_activity) -> pd.DataFrame:
     """
-
+    Функция вычитывает данные Росстата о номинальной заработной плате и формирует исторический датафрейм
     :param chosen_activity: список видов эклономической деятельности, выбранных пользователем из доступных
     :return: Датафрейм с данными о номинальных заработных платах по видам экономической деятельнсоти
     """
@@ -104,7 +122,8 @@ def economy_activity_data(chosen_activity) -> pd.DataFrame:
 @st.cache_data
 def inflation_data() -> pd.DataFrame:
     """
-    Функция получает данные об инфляции в формате html и распарсевает их
+    Функция получает данные об инфляции из основного или альтернативного источника,
+    создает колонку с данными об инфляции за предыдущий период
 
     :return: Датафрейм с данными об инфляции
     """
@@ -119,7 +138,7 @@ def inflation_data() -> pd.DataFrame:
 @st.cache_data
 def gross_domestic_product(file_name, result_column) -> pd.DataFrame:
     """
-    Функция подготовливает данные о ВВП или данные о ВВП на чел
+    Функция подготовливает данные о ВВП или данные о ВВП на чел - работает универсально
 
     :param result_column: Имя колонки в которую будут сохранены результаты подготовки данных
     :param file_name: Название файла на сайте Росстата с выбранным показателем
