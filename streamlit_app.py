@@ -3,6 +3,8 @@ import altair as alt
 from prepare_data import main, extra_metrics, previous_year_inflation, real_salary, real_salary_delta
 import numpy as np
 
+import pip
+pip.main(["install", "openpyxl"])
 
 CHOSEN_ACTIVITY = ['добыча полезных ископаемых', 'обрабатывающие производства', 'строительство',
                    'деятельность гостиниц и предприятий общественного питания', 'образование',
