@@ -118,7 +118,8 @@ if __name__ == '__main__':
 
     selected_activity = st.multiselect(
         'Какие виды экономической деятельности Вас интересуют?',
-        activity, CHOSEN_ACTIVITY)
+        options=activity, default=CHOSEN_ACTIVITY
+    )
     st.write("")
     from_year, to_year = st.slider(
         'Какой промежуток времени Вас интересует?',
