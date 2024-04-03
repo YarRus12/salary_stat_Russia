@@ -78,7 +78,7 @@ def create_schedule_vvp(df_general, df_vvp, extra_column):
         width=1000,
         height=400
     )
-    combined_chart = alt.layer(bar_chart, line_delta_salary).resolve_scale(y='independent')
+    combined_chart = alt.layer(bar_chart, line_delta_salary)
     st.altair_chart(combined_chart, use_container_width=True)
 
 
