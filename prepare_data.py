@@ -17,7 +17,12 @@ real_salary_delta = attributes['real_salary_delta']
 
 
 @st.cache_data
-def economy_activity_data(chosen_activity):
+def economy_activity_data(chosen_activity) -> pd.DataFrame:
+    """
+
+    :param chosen_activity: список видов эклономической деятельности, выбранных пользователем из доступных
+    :return: Датафрейм с данными о номинальных заработных платах по видам экономической деятельнсоти
+    """
     df_2016 = pd.read_excel("tab3-zpl_2023.xlsx", sheet_name='2000-2016 гг.', index_col=None)[
               2:]  # первые строки не несут информации для нас
     column_list = ['Вид деятельности', '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009',
@@ -57,7 +62,12 @@ def economy_activity_data(chosen_activity):
 
 
 @st.cache_data
-def inflation_data():
+def inflation_data() -> pd.DataFrame:
+    """
+    Функция получает данные об инфляции в формате html и распарсевает их
+
+    :return: Датафрейм с данными об инфляции
+    """
     url = 'https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8'
     r = requests.get(url)
     if r.status_code == 200:
@@ -65,9 +75,11 @@ def inflation_data():
     else:
         print('No connection')
         raise
+    # Обработка html до словаря
     inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
     inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
     inflation_list = (eval(inflation_line))
+
     year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
                 record['month'][5:7] == '12']
     inflation = pd.DataFrame(year_inf, columns=['year', current_inflation])
@@ -75,10 +87,13 @@ def inflation_data():
     return inflation
 
 
-def gross_domestic_product(file_name, result_column):
+@st.cache_data
+def gross_domestic_product(file_name, result_column) -> pd.DataFrame:
     """
-    Работает для обработки как данных ВВП так и для обработки ВВП на чел
-    :param file_name:
+    Функция подготовливает данные о ВВП или данные о ВВП на чел
+
+    :param result_column: Имя колонки в которую будут сохранены результаты подготовки данных
+    :param file_name: Название файла на сайте Росстата с выбранным показателем
     :return:
     """
     vvp_url = f'https://rosstat.gov.ru/storage/mediabank/{file_name}'
@@ -111,26 +126,43 @@ def gross_domestic_product(file_name, result_column):
 
 
 @st.cache_data
-def main(choosen_activity):
-    # удалим старый файл с данными
-    [os.remove(x) for x in os.listdir() if x.endswith('.xlsx')]
-    # скачиваем xlsx файл с данными
+def main(chosen_activity: list) -> pd.DataFrame:
+    """
+    Основная функция подготовки данных о заработной плате и инфляции
+
+    :param chosen_activity: список видов эклономической деятельности, выбранных пользователем из доступных
+    :return: pandas.DataFrame с данными о видах деятельности, номинальную и реальную заработную плату
+    """
+    # удалим старые файлы с данными
+    [os.remove(x) for x in os.listdir() if "xlsx" in x]
+
+    # скачиваем xlsx файл с данными с сайта Росстата
     stat_url = 'https://rosstat.gov.ru/storage/mediabank/tab3-zpl_2023.xlsx'
     wget_command = ['wget', '--limit-rate=100k', stat_url]
     subprocess.run(wget_command)
+
     # готовим данные
-    economy_df = economy_activity_data(choosen_activity)
+    economy_df = economy_activity_data(chosen_activity)
     inflation_df = inflation_data()
     result = economy_df.merge(inflation_df, on='year')
+
+    # Расчитываем реальную заработную плату
     result[real_salary] = result[nominal_salary] * (
             (100 - result[previous_year_inflation]) / 100)
+    # Расчитываем изменение реальной заработной платы во времени
     result[real_salary_delta] = result.groupby('Вид деятельности')[
                                     real_salary].pct_change() * 100
     return result[['year', 'Вид деятельности', real_salary,
                    previous_year_inflation, current_inflation, real_salary_delta]]
 
 
-def extra_metrics(extra):
+def extra_metrics(extra: list) -> dict:
+    """
+    Функция собирает дополнительные данные из выбранных пользователем показателей
+
+    :param extra: список, выбранных пользователем показателей
+    :return: словарь с датафреймом и результирующей колонкой
+    """
     result_extra_dict = {}
     if 'ВВП' in extra:
         col = 'Изменение ВВП %'
@@ -147,16 +179,4 @@ def extra_metrics(extra):
             result_column=col),
             'column': col
         }
-
-    if 'ВНП' in extra:
-        result_extra_dict['ВНП'] = None
-        pass
-
-    if 'Уровень счастья' in extra:
-        result_extra_dict['Уровень счастья'] = None
-        pass
-
-    if 'Уровень безработицы' in extra:
-        result_extra_dict['Уровень безработицы'] = None
-        pass
     return result_extra_dict

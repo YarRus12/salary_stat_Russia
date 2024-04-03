@@ -7,13 +7,17 @@ import numpy as np
 CHOSEN_ACTIVITY = ['добыча полезных ископаемых', 'обрабатывающие производства', 'строительство',
                    'деятельность гостиниц и предприятий общественного питания', 'образование',
                    'деятельность в области здравоохранения и социальных услуг']
-EXTRA_METRICS = ['ВВП', 'ВВП на душу населения', 'ВВП на душу населения', 'ВНП', 'Уровень счастья',
-                 'Уровень безработицы']
+EXTRA_METRICS = ['ВВП', 'ВВП на душу населения']
 
 
 @st.cache_data(ttl=60 * 60 * 24)
-def create_schedule_main(dataframe):
+def create_schedule_main(dataframe) -> None:
+    """
+    Публикует графики с заработной платой отрасли и накладывает на графики линии роста реальной ЗП и инфляции
 
+    :param dataframe: Объединенный dataframe со всеми данными
+    :return:
+    """
     bar_chart = alt.Chart(dataframe).mark_bar().encode(
         x=alt.X('year:O', axis=alt.Axis(format='')),
         y=real_salary,
@@ -23,7 +27,7 @@ def create_schedule_main(dataframe):
         height=400
     )
 
-    # Создание линии инфляции на уровне инфляции в прошлом году
+    # Создание линии инфляции на уровне инфляции предшествующего года
     inflation_chart = alt.Chart(dataframe).mark_line(color='red').encode(
         y=alt.Y(previous_year_inflation, axis=alt.Axis(titleColor='white', labelColor='red')),
         # Настройка цвета текста по оси Y
@@ -34,7 +38,7 @@ def create_schedule_main(dataframe):
         height=400,
     )
 
-    # Создание линии % изменения реальной заработной платы в сравнении с предыдущим периодом
+    # Создание линии изменения реальной заработной платы (%) в сравнении с предыдущим периодом
     line_delta_salary = alt.Chart(dataframe).mark_line(color='green').encode(
         y=alt.Y(real_salary_delta, axis=alt.Axis(titleColor='white', labelColor='green')),
         x=alt.Y('year:O', axis=alt.Axis(titleColor='white')),
@@ -47,7 +51,7 @@ def create_schedule_main(dataframe):
     # Объединяем линию инфляции и линию % изменний заработной платы
     inflation_delta_salary_line = alt.layer(inflation_chart, line_delta_salary)
 
-    # Соединяем линии с барелями заработной платы
+    # Соединяем линии с барелями заработной платы без привязки - так нагляднее представлена тенденция
     combined_chart = alt.layer(bar_chart, inflation_delta_salary_line).resolve_scale(y='independent')
     st.altair_chart(combined_chart, use_container_width=True)
 
@@ -107,7 +111,7 @@ if __name__ == '__main__':
     st.title('Анализ зарплат в России')
 
     # Load data
-    res = main(choosen_activity=CHOSEN_ACTIVITY)
+    res = main(chosen_activity=CHOSEN_ACTIVITY)
     res.year = res.year.astype('int')
     min_value = res['year'].min()
     max_value = res['year'].max()
@@ -127,7 +131,7 @@ if __name__ == '__main__':
     st.write("")
 
     selected_extra = st.multiselect(
-        'Посмотрим дополнительные метрики для выбранных отраслей?',
+        'Посмотрим дополнительные макроэкономические показатели для выбранных отраслей?',
         EXTRA_METRICS, EXTRA_METRICS)
 
     filtered_df = res[
@@ -164,18 +168,6 @@ if __name__ == '__main__':
             corr_coefficient_extra(df_general=df, df_vvp=vvp_dt_per['dataframe'], extra_column=vvp_dt_per['column'])
             create_schedule_vvp(df_general=df, df_vvp=vvp_dt_per['dataframe'], extra_column=vvp_dt_per['column'])
 
-        if 'ВНП' in selected_extra:
-            df = df_dict['ВНП']
-            pass
-
-        if 'Уровень счастья' in selected_extra:
-            df = df_dict['Уровень счастья']
-            pass
-
-        if 'Уровень безработицы' in selected_extra:
-            df = df_dict['Уровень безработицы']
-            pass
-
     st.write("")
     st.write("")
     st.write("")
@@ -183,7 +175,7 @@ if __name__ == '__main__':
     st.write("")
     st.write("")
 
-    st.sidebar.title("About")
+    st.sidebar.title("Этот sidebar немного расскажет о результатах реализации проекта")
     st.sidebar.info(
         """
         This app is Open Source dashboard.
