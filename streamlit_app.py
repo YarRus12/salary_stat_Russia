@@ -81,11 +81,10 @@ def create_schedule_vvp(df_general, df_vvp, extra_column):
     st.altair_chart(combined_chart, use_container_width=True)
 
 
-
 def corr_coefficient_extra(df_general, df_vvp, extra_column, general_column='изменением реальной заработной платы'):
 
     filled_length = len(df_general.merge(df_vvp, on='year'))-2
-    delta_salary_list = df_general[real_salary_delta].tolist()[-filled_length:]  # Первое число всегда nan - его мы удаляем
+    delta_salary_list = df_general[real_salary_delta].tolist()[-filled_length:] # Первое число всегда nan - его мы удаляем
     extra_column_list = df_vvp[extra_column].tolist()[
                                   -filled_length:]  # не длиннее delta зп
 

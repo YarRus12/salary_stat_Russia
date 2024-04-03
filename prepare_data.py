@@ -1,6 +1,4 @@
-import subprocess
 import requests
-import os
 import streamlit as st
 import pandas as pd
 
@@ -23,7 +21,8 @@ def economy_activity_data(chosen_activity) -> pd.DataFrame:
     :param chosen_activity: список видов эклономической деятельности, выбранных пользователем из доступных
     :return: Датафрейм с данными о номинальных заработных платах по видам экономической деятельнсоти
     """
-    df_2016 = pd.read_excel("tab3-zpl_2023.xlsx", sheet_name='2000-2016 гг.', index_col=None)[
+    df_2016 = pd.read_excel("https://rosstat.gov.ru/storage/mediabank/tab3-zpl_2023.xlsx",
+                            sheet_name='2000-2016 гг.', index_col=None)[
               2:]  # первые строки не несут информации для нас
     column_list = ['Вид деятельности', '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009',
                    '2010', '2011', '2012', '2013', '2014', '2015', '2016']
@@ -44,7 +43,7 @@ def economy_activity_data(chosen_activity) -> pd.DataFrame:
     # Колонка вид деятельности очищается от регистрозависимости и пробелов
     df_2016['Вид деятельности'] = df_2016['Вид деятельности'].str.lower().str.strip()
     # Подготовка датафрейма с новым данными
-    df_2017 = pd.read_excel("tab3-zpl_2023.xlsx", sheet_name='с 2017 г.')[4:]
+    df_2017 = pd.read_excel("https://rosstat.gov.ru/storage/mediabank/tab3-zpl_2023.xlsx", sheet_name='с 2017 г.')[4:]
     rename_dict = {'Unnamed: 0': 'Вид деятельности'}
 
     # Дополняем словарь с названием колонок через увеличение года на индекс колонки
@@ -68,7 +67,8 @@ def inflation_data() -> pd.DataFrame:
 
     :return: Датафрейм с данными об инфляции
     """
-    url = 'https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8'
+    url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B
+    -%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8"""
     r = requests.get(url)
     if r.status_code == 200:
         html_content = r.text
@@ -96,20 +96,20 @@ def gross_domestic_product(file_name, result_column) -> pd.DataFrame:
     :param file_name: Название файла на сайте Росстата с выбранным показателем
     :return:
     """
-    vvp_url = f'https://rosstat.gov.ru/storage/mediabank/{file_name}'
-    wget_command = ['wget', '--limit-rate=100k', vvp_url]
-    subprocess.run(wget_command)
+    url = f"https://rosstat.gov.ru/storage/mediabank/{file_name}"
 
-    vvp_old = pd.read_excel(file_name, sheet_name='1', index_col=None)[1:].T
+    vvp_old = pd.read_excel(url,
+                            sheet_name='1', index_col=None)[1:].T
     vvp_old.rename(columns={1: 'year', 2: 'ВВП в трлн руб.'}, inplace=True)
     vvp_old['year'] = vvp_old['year'].astype(int)
     vvp_old['ВВП в трлн руб.'] = vvp_old['ВВП в трлн руб.'].astype(float)
     vvp_old.reset_index(drop=True, inplace=True)
 
-    vvp = pd.read_excel(file_name, sheet_name='2', index_col=None)[2:4].T
+    vvp = pd.read_excel(url,
+                        sheet_name='2', index_col=None)[2:4].T
     vvp.rename(columns={2: 'year', 3: 'ВВП в трлн руб.'}, inplace=True)
     if result_column == 'Изменение ВВП на чел %':
-        vvp = pd.read_excel(file_name, sheet_name='2', index_col=None)[1:3].T
+        vvp = pd.read_excel(url, sheet_name='2', index_col=None)[1:3].T
         vvp.rename(columns={1: 'year', 2: 'ВВП в трлн руб.'}, inplace=True)
 
     vvp = vvp[['year', 'ВВП в трлн руб.']].astype(str)
@@ -133,13 +133,6 @@ def main(chosen_activity: list) -> pd.DataFrame:
     :param chosen_activity: список видов эклономической деятельности, выбранных пользователем из доступных
     :return: pandas.DataFrame с данными о видах деятельности, номинальную и реальную заработную плату
     """
-    # удалим старые файлы с данными
-    [os.remove(x) for x in os.listdir() if "xlsx" in x]
-
-    # скачиваем xlsx файл с данными с сайта Росстата
-    stat_url = 'https://rosstat.gov.ru/storage/mediabank/tab3-zpl_2023.xlsx'
-    wget_command = ['wget', '--limit-rate=100k', stat_url]
-    subprocess.run(wget_command)
 
     # готовим данные
     economy_df = economy_activity_data(chosen_activity)
