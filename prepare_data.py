@@ -14,6 +14,30 @@ previous_year_inflation, real_salary = attributes['previous_year_inflation'], at
 real_salary_delta = attributes['real_salary_delta']
 
 
+def clean_inflation(value):
+    if ',' in value:
+        value = value.replace(',', '.')
+    value = ''.join(filter(lambda x: x in '1234567890.', value))
+    return value
+
+
+def alternative_inflation_data():
+    df = pd.read_excel("https://rosstat.gov.ru/storage/mediabank/ipc_mes_02-2024.xlsx",
+                       sheet_name='01', index_col=None)[
+         2:18]
+
+    new_df = pd.concat([df.iloc[[0]], df.iloc[[-1]]], ignore_index=True).T
+
+    new_df.reset_index(drop=True, inplace=True)
+    new_df.rename(columns={0: 'year', 1: current_inflation}, inplace=True)
+
+    new_df = new_df.dropna(subset=['year'])
+    new_df = new_df[['year', current_inflation]].astype(str)
+    new_df['year'] = new_df['year'].str.slice(0, 4)
+    new_df[current_inflation] = new_df[current_inflation].apply(clean_inflation).astype(float) - 100
+    return new_df
+
+
 @st.cache_data
 def economy_activity_data(chosen_activity) -> pd.DataFrame:
     """
@@ -67,21 +91,24 @@ def inflation_data() -> pd.DataFrame:
 
     :return: Датафрейм с данными об инфляции
     """
-    url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8"""
-    r = requests.get(url)
-    if r.status_code == 200:
-        html_content = r.text
-    else:
-        print('No connection')
-        raise
-    # Обработка html до словаря
-    inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
-    inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
-    inflation_list = (eval(inflation_line))
+    try:
+        url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8   """
+        r = requests.get(url)
+        if r.status_code == 200:
+            html_content = r.text
+        else:
+            print('No connection')
+            raise
+        # Обработка html до словаря
+        inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
+        inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
+        inflation_list = (eval(inflation_line))
 
-    year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
-                record['month'][5:7] == '12']
-    inflation = pd.DataFrame(year_inf, columns=['year', current_inflation])
+        year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
+                    record['month'][5:7] == '12']
+        inflation = pd.DataFrame(year_inf, columns=['year', current_inflation])
+    except Exception as e:
+        inflation = alternative_inflation_data()
     inflation[previous_year_inflation] = inflation[current_inflation].shift(1)
     return inflation
 
