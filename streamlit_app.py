@@ -1,7 +1,8 @@
 import streamlit as st
 import altair as alt
-from prepare_data import main
+from prepare_data import main, previous_year_inflation, real_salary, real_salary_delta
 import numpy as np
+
 
 CHOSEN_ACTIVITY = ['добыча полезных ископаемых', 'обрабатывающие производства', 'строительство',
                    'деятельность гостиниц и предприятий общественного питания', 'образование',
@@ -13,7 +14,7 @@ def create_schedule(dataframe):
 
     bar_chart = alt.Chart(dataframe).mark_bar().encode(
         x=alt.X('year:O', axis=alt.Axis(format='')),
-        y='Средняя заработная плата',
+        y=real_salary,
         color='Вид деятельности'
     ).properties(
         width=1000,
@@ -22,7 +23,7 @@ def create_schedule(dataframe):
 
     # Создание линии инфляции на уровне инфляции в прошлом году
     inflation_chart = alt.Chart(dataframe).mark_line(color='red').encode(
-        y=alt.Y('Инфляция в прошлом году', axis=alt.Axis(titleColor='white', labelColor='red')),
+        y=alt.Y(previous_year_inflation, axis=alt.Axis(titleColor='white', labelColor='red')),
         # Настройка цвета текста по оси Y
         x=alt.X('year:O', axis=alt.Axis(format='')),
         size=alt.value(5)  # Настройка цвета текста по оси X
@@ -33,7 +34,7 @@ def create_schedule(dataframe):
 
     # Создание линии % изменения реальной заработной платы в сравнении с предыдущим периодом
     line_delta_salary = alt.Chart(dataframe).mark_line(color='green').encode(
-        y=alt.Y('Изменения реальной заработной платы', axis=alt.Axis(titleColor='white', labelColor='green')),
+        y=alt.Y(real_salary_delta, axis=alt.Axis(titleColor='white', labelColor='green')),
         x=alt.Y('year:O', axis=alt.Axis(titleColor='white')),
         size=alt.value(5)
     ).properties(
@@ -50,15 +51,15 @@ def create_schedule(dataframe):
 
 
 def corr_coefficient(dataframe):
-    delta_salary_list = dataframe['Изменения реальной заработной платы'].tolist()[1:]  # Первое число всегда nan - его мы удаляем
-    inflation_last_year_list = dataframe['Инфляция в прошлом году'].tolist()[
+    delta_salary_list = dataframe[real_salary_delta].tolist()[1:]  # Первое число всегда nan - его мы удаляем
+    inflation_last_year_list = dataframe[previous_year_inflation].tolist()[
                                :len(delta_salary_list)]  # не длиннее delta зп
     st.write("")
 
-    st.info(f"Коэффициент корреляции Пирсона между инфляцией прошлого года и изменением заработной платы "
+    st.info(f"Коэффициент корреляции Пирсона между инфляцией прошлого года и изменением реальной заработной платы "
             f"в сфере - {activity.capitalize()}: "
             f"{str(np.corrcoef(inflation_last_year_list, delta_salary_list)[0, 1])}")
-    # inflation_curr_year_list = dataframe['inflation_rate'].tolist()[:len(delta_salary_list)]  # не длиннее delta зп
+    # inflation_curr_year_list = dataframe[current_inflation].tolist()[:len(delta_salary_list)]  # не длиннее delta зп
     # st.info(f"Коэффициент корреляции Пирсона между инфляцией текущего года и изменением заработной платы: "
     #         f"{str(np.corrcoef(inflation_curr_year_list, delta_salary_list)[0, 1])}")
 

@@ -1,13 +1,19 @@
 import subprocess
 import requests
-import pandas as pd
 import os
 import streamlit as st
-import streamlit as st
-import numpy as np
 import pandas as pd
-import altair as alt
 
+attributes = {
+    'nominal_salary': 'Средняя заработная плата',
+    'current_inflation': 'inflation_rate',
+    'previous_year_inflation': 'Инфляция прошлого года',
+    'real_salary': 'Реальный размер заработной платы',
+    'real_salary_delta': 'Изменение реальной ЗП'
+}
+nominal_salary, current_inflation = attributes['nominal_salary'], attributes['current_inflation']
+previous_year_inflation, real_salary = attributes['previous_year_inflation'], attributes['real_salary']
+real_salary_delta = attributes['real_salary_delta']
 
 
 @st.cache_data
@@ -44,7 +50,7 @@ def economy_actvity_data(choosen_activity):
     merged = (pd.merge(df_2016[df_2016['Вид деятельности'].str.lower().str.strip().isin(choosen_activity)],
                      df_2017[df_2017['Вид деятельности'].str.lower().str.strip().isin(choosen_activity)],
                      on='Вид деятельности')
-            .melt(id_vars='Вид деятельности', var_name='year', value_name='Средняя заработная плата')
+            .melt(id_vars='Вид деятельности', var_name='year', value_name=nominal_salary)
             )
     return merged
 
@@ -60,10 +66,10 @@ def infliation_data():
     inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
     inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
     inflation_list = (eval(inflation_line))
-    year_inf = [{'year': record['month'][:4], 'inflation_rate': record['rate']} for record in inflation_list if
+    year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
                 record['month'][5:7] == '12']
-    inflation = pd.DataFrame(year_inf, columns=['year', 'inflation_rate'])
-    inflation['Инфляция в прошлом году'] = inflation['inflation_rate'].shift(1)
+    inflation = pd.DataFrame(year_inf, columns=['year', current_inflation])
+    inflation[previous_year_inflation] = inflation[current_inflation].shift(1)
     return inflation
 
 @st.cache_data
@@ -78,11 +84,11 @@ def main(choosen_activity):
     economy_df = economy_actvity_data(choosen_activity)
     inflation_df = infliation_data()
     result = economy_df.merge(inflation_df, on='year')
-    result['Реальный размер заработной платы'] = result['Средняя заработная плата'] * (
-                (100 - result['Инфляция в прошлом году']) / 100)
-    result['Изменения реальной заработной платы'] = result.groupby('Вид деятельности')[
-                                                       'Реальный размер заработной платы'].pct_change() * 100
-    return result[['year', 'Вид деятельности', 'Средняя заработная плата',
-                   'Инфляция в прошлом году', 'Изменения реальной заработной платы', 'inflation_rate']]
+    result[real_salary] = result[nominal_salary] * (
+                (100 - result[previous_year_inflation]) / 100)
+    result[real_salary_delta] = result.groupby('Вид деятельности')[
+                                                       real_salary].pct_change() * 100
+    return result[['year', 'Вид деятельности', real_salary,
+                   previous_year_inflation, current_inflation, real_salary_delta]]
 
 
