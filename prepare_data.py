@@ -20,6 +20,23 @@ def clean_inflation(value):
     value = ''.join(filter(lambda x: x in '1234567890.', value))
     return value
 
+def main_inflation_data():
+    url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8"""
+    r = requests.get(url)
+    if r.status_code == 200:
+        html_content = r.text
+    else:
+        print('No connection')
+        raise
+    # Обработка html до словаря
+    inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
+    inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
+    inflation_list = (eval(inflation_line))
+
+    year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
+                record['month'][5:7] == '12']
+    return pd.DataFrame(year_inf, columns=['year', current_inflation])
+
 
 def alternative_inflation_data():
     df = pd.read_excel("https://rosstat.gov.ru/storage/mediabank/ipc_mes_02-2024.xlsx",
@@ -91,24 +108,11 @@ def inflation_data() -> pd.DataFrame:
 
     :return: Датафрейм с данными об инфляции
     """
-    try:
-        url = """https://xn----ctbjnaatncev9av3a8f8b.xn--p1ai/%D1%82%D0%B0%D0%B1%D0%BB%D0%B8%D1%86%D1%8B-%D0%B8%D0%BD%D1%84%D0%BB%D1%8F%D1%86%D0%B8%D0%B8   """
-        r = requests.get(url)
-        if r.status_code == 200:
-            html_content = r.text
-        else:
-            print('No connection')
-            raise
-        # Обработка html до словаря
-        inflation_start_line = html_content[html_content.find('yoyInflationList') + len('yoyInflationList":'):]
-        inflation_line = inflation_start_line[:inflation_start_line.find(']') + 1].replace('new Date(', '').replace(')', '')
-        inflation_list = (eval(inflation_line))
-
-        year_inf = [{'year': record['month'][:4], current_inflation: record['rate']} for record in inflation_list if
-                    record['month'][5:7] == '12']
-        inflation = pd.DataFrame(year_inf, columns=['year', current_inflation])
-    except Exception as e:
-        inflation = alternative_inflation_data()
+    # try:
+    #     inflation = main_inflation_data()
+    # except Exception as e:
+    #     inflation = alternative_inflation_data()
+    inflation = alternative_inflation_data()
     inflation[previous_year_inflation] = inflation[current_inflation].shift(1)
     return inflation
 
