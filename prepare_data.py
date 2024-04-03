@@ -108,10 +108,11 @@ def inflation_data() -> pd.DataFrame:
 
     :return: Датафрейм с данными об инфляции
     """
-    try:
-        inflation = main_inflation_data()
-    except Exception as e:
-        inflation = alternative_inflation_data()
+    # try:
+    #     inflation = main_inflation_data()
+    # except Exception as e:
+    #     inflation = alternative_inflation_data()
+    inflation = alternative_inflation_data()
     inflation[previous_year_inflation] = inflation[current_inflation].shift(1)
     return inflation
 
